@@ -14,7 +14,7 @@ public enum Quotes {
 
     private final String quote;
 
-    private Quotes(String quote) {
+    Quotes(String quote) {
         this.quote = quote;
     }
 
