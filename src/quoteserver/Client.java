@@ -11,11 +11,11 @@ public class Client {
 
     public static void main(String[] args) throws IOException {
         int serverPortNumber = 15000;
-        String hostName = "localhost";
+        String hostName = "localhost"; // ducknexus.com
 
         DatagramSocket socket = new DatagramSocket();
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String command = "";
+        String command;
         while (true) {
             System.out.print("[command]> ");
             command = reader.readLine();
