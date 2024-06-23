@@ -22,8 +22,8 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        String host = "minderaserver.ducknexus.com";
-        int port = 80;
+        String host = "localhost";
+        int port = 15000;
         Socket clientSocket = init(host, port); // blocking method
         if (clientSocket == null) {
             return;
