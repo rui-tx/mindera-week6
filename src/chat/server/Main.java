@@ -18,16 +18,20 @@ public class Main {
             try {
                 command = reader.readLine();
 
-                if(command.equals("l") ) {
+                if (command.equals("l")) {
                     server.listConnections();
                 }
 
-                if(command.equals("t") ) {
-                    server.sendMessageToClients("this is a test message sent from the server");
+                if (command.equals("t")) {
+                    server.sendMessageToClients("[server]> this is a test message sent from the server");
                 }
 
-                if(command.equals("q") ) {
-                    server.quit();
+                if (command.equals("c")) {
+                    server.closeUnusedThreads();
+                }
+
+                if (command.equals("q")) {
+                    System.exit(1);
                 }
 
             } catch (IOException e) {

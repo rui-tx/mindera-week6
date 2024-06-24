@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class Client implements Runnable{
+public class Client implements Runnable {
+    private BufferedReader in;
+    private PrintWriter out;
     private Socket socket;
 
     public Socket init(String host, int port) {
@@ -21,62 +23,58 @@ public class Client implements Runnable{
     }
 
     private void close() throws IOException {
+        System.out.println("Connection to the server closed.");
         this.socket.close();
     }
 
     @Override
     public void run() {
+
         // read thread
         Thread read = new Thread(() -> {
-            while (this.socket.isBound()) {
+            while (this.socket != null && !socket.isClosed()) {
                 try {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-                    System.out.printf("\n%s\n", in.readLine());
+                    // current read stream from the server ie stuff that the server sends will be here
+                    in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+                    String message = in.readLine();
+                    if (message == null) {
+                        this.close();
+                        return;
+                    }
+                    System.out.printf("%s\n", message);
                 } catch (IOException e) {
+                    System.out.println("No connection to the server.");
                     return;
                     //throw new RuntimeException(e);
                 }
             }
-
-            try {
-                this.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
         });
 
         // write thread
         Thread write = new Thread(() -> {
-            PrintWriter out;
-            try {
-                out = new PrintWriter(this.socket.getOutputStream(), true);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
             String command;
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            while (this.socket.isBound()) {
-                //System.out.print("[" + this.socket.getLocalPort() + "]> ");
+            while (this.socket != null && !socket.isClosed()) {
                 try {
+                    // current write stream to the server ie stuff we write here will go to the server
+                    out = new PrintWriter(this.socket.getOutputStream(), true);
                     command = reader.readLine();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
 
                 if (command.equals("exit")) {
+                    try {
+                        out.println("exit");
+                        this.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     break;
                 }
 
-                out.println(command);
+                out.println(command); //send to server the command
                 out.flush();
-            }
-
-            try {
-                this.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         });
 
