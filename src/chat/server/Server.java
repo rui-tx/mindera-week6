@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class Server implements Runnable {
 
@@ -15,6 +17,12 @@ public class Server implements Runnable {
 
     private final List<Thread> connectionThreadList = new LinkedList<>();
     private final List<Connection> connectionList = new LinkedList<>();
+    private final Map<String, Connection> roomList = new HashMap<>();
+
+
+    public List<Connection> getConnectionList() {
+        return connectionList;
+    }
 
     private ServerSocket init() {
         ServerSocket socket;
@@ -45,13 +53,30 @@ public class Server implements Runnable {
 
     public void sendMessageToClients(String message) {
         for (Connection c : connectionList) {
-            try {
-                PrintWriter out = c.getOutputStream();
-                out.println(message);
-                out.flush();
+            if (c.getCurrentRoom().equals("Global")) {
+                try {
+                    PrintWriter out = c.getOutputStream();
+                    out.println(message);
+                    out.flush();
 
-            } catch (IOException e) {
-                e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void sendMessageToClients(String roomName, String message) {
+        for (Connection c : connectionList) {
+            if (c.getCurrentRoom().equals(roomName)) {
+                try {
+                    PrintWriter out = c.getOutputStream();
+                    out.println(message);
+                    out.flush();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -62,7 +87,7 @@ public class Server implements Runnable {
         }
 
         for (Connection c : connectionList) {
-            System.out.println("client name: " + c.getClientName());
+            System.out.println("client name: " + c.getClientName() + " on room " + c.getCurrentRoom());
         }
     }
 
@@ -90,7 +115,8 @@ public class Server implements Runnable {
         connectionList.forEach(conn -> {
             if (conn.isCloseMe()) {
                 try {
-                    this.sendMessageToClients("[server]> [" + conn.getSocket().getPort() + "] disconnected the server");
+                    this.sendMessageToClients("[server]> [" + conn.getSocket().getPort() + "] disconnected");
+                    System.out.println("[server]> [" + conn.getSocket().getPort() + "] disconnected");
                     conn.getSocket().close();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -111,6 +137,14 @@ public class Server implements Runnable {
         // remove closed connections and dead threads
         connectionList.removeIf(e -> e.getSocket().isClosed());
         connectionThreadList.removeIf(t -> !t.isAlive());
+    }
+
+    public void newRoom(String roomName) {
+        //this.roomList.add(roomName);
+    }
+
+    public void addClientToRoom(Connection connection, String roomName) {
+        this.roomList.put(roomName, connection);
     }
 
     @Override
