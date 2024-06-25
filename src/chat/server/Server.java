@@ -221,65 +221,65 @@ public class Server implements Runnable {
 
                     try {
                         out = new PrintWriter(socket.getOutputStream(), true); // output stream from the current connection
-                        if (!message.isEmpty()) {
-                            if (message.charAt(0) == '#') {
-                                String cmd = message.substring(1, 2);
-                                switch (cmd) {
 
-                                    case "h":
-                                        out.println("help");
+                        //if (!message.isEmpty()) {
+                        if (message.startsWith("/")) {
+
+                            String cmd;
+                            String parameter = "";
+                            
+                            String[] splitCmd = message.split(" ", 2);
+                            if (splitCmd.length == 1) {
+                                cmd = splitCmd[0];
+                            } else {
+                                cmd = message.split(" ", 2)[0];
+                                parameter = message.split(" ", 2)[1];
+                            }
+
+                            switch (cmd) {
+                                case "/help":
+                                    out.println("help");
+                                    this.dontBroadcast = true;
+                                    break;
+
+                                case "/room":
+                                    if (parameter.length() > 1) {
+                                        this.currentRoom = parameter;
+                                        out.println("Joined: " + this.currentRoom);
+                                        out.println("[" + socket.getPort() + "]>");
                                         this.dontBroadcast = true;
                                         break;
+                                    }
+                                    break;
 
-                                    case "r":
-                                        if (message.substring(2).length() > 1) {
-                                            this.currentRoom = message.substring(2);
-                                            out.println("Joined: " + this.currentRoom);
-                                            out.println("[" + socket.getPort() + "]>");
-                                            this.dontBroadcast = true;
-                                            break;
-                                        }
-                                        break;
-
-                                    case "l":
-                                        out.println("Room: " + this.currentRoom + " (" + this.server.getConnectionList().stream()
-                                                .filter(e -> e.currentRoom.equals(this.currentRoom))
-                                                .count()
-                                                + ")");
-
-                                        //not working for some reason
-                                    /*
-                                    this.server.getConnectionList().stream()
+                                case "/list":
+                                    out.println("Room: " + this.currentRoom + " (" + this.server.getConnectionList().stream()
                                             .filter(e -> e.currentRoom.equals(this.currentRoom))
-                                            .forEach(e -> out.println(e.getClientName()));
+                                            .count()
+                                            + ")");
+                                    this.dontBroadcast = true;
+                                    break;
 
-                                    this.server.getConnectionList().forEach(c -> {
-                                        if (this.currentRoom.equals(c.currentRoom)) {
-                                            out.println("Client Name: " + c.getClientName());
-                                        }
-                                    });
-                                     */
+                                case "/leave":
+                                    if (!this.currentRoom.equals("Global")) {
+                                        out.println("Room left: " + this.currentRoom);
+                                        this.currentRoom = "Global";
                                         this.dontBroadcast = true;
-                                        break;
+                                    }
+                                    break;
 
-                                    case "e":
-                                        if (!this.currentRoom.equals("Global")) {
-                                            out.println("Room left: " + this.currentRoom);
-                                            this.currentRoom = "Global";
-                                            this.dontBroadcast = true;
-                                        }
-                                        break;
+                                case "/exit":
+                                    this.close();
+                                    this.dontBroadcast = true;
+                                    return;
 
-                                    case "x":
-                                        this.close();
-                                        this.dontBroadcast = true;
-                                        return;
-
-                                    default:
-                                        break;
-                                }
+                                default:
+                                    out.println("Invalid command.");
+                                    this.dontBroadcast = true;
+                                    break;
                             }
                         }
+                        //}
 
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
