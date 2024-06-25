@@ -25,9 +25,9 @@ public class Main {
                 if (command.equals("t")) {
                     server.sendMessageToClients("[server]> this is a test message sent from the server");
                 }
-                
+
                 if (command.equals("c")) {
-                    server.closeUnusedThreads();
+                    server.closeUnusedConnections();
                 }
 
                 if (command.equals("q")) {
