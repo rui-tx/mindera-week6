@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server implements Runnable {
 
@@ -17,7 +19,7 @@ public class Server implements Runnable {
     private final String HOST = "localhost";
     private final int PORT = 15000;
 
-    private final List<Thread> connectionThreadList = new LinkedList<>();
+    private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private final List<Connection> connectionList = new LinkedList<>();
     private final Map<String, Connection> roomList = new HashMap<>();
 
@@ -84,24 +86,12 @@ public class Server implements Runnable {
     }
 
     public void listConnections() {
-        for (Thread c : connectionThreadList) {
-            System.out.println("thread name: " + c.getName());
-        }
-
         for (Connection c : connectionList) {
             System.out.println("client name: " + c.getClientName() + " on room " + c.getCurrentRoom());
         }
     }
 
     public void quit() {
-        connectionThreadList.forEach(thread -> {
-            try {
-                thread.join(1000);
-            } catch (InterruptedException e) {
-                System.out.println("error closing threads: " + e);
-            }
-        });
-
         for (Connection c : connectionList) {
             try {
                 c.getSocket().close();
@@ -111,7 +101,7 @@ public class Server implements Runnable {
         }
     }
 
-    public void closeUnusedThreads() {
+    public void closeUnusedConnections() {
 
         // a connection has a thread associated with, so if a connection is closed, we close the thread too
         connectionList.forEach(conn -> {
@@ -123,22 +113,11 @@ public class Server implements Runnable {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-
-                connectionThreadList.forEach(thread -> {
-                    try {
-                        if (thread.getName().equals(conn.getClientName())) {
-                            thread.join(250);
-                        }
-                    } catch (InterruptedException e) {
-                        System.out.println("error closing threads: " + e);
-                    }
-                });
             }
         });
 
-        // remove closed connections and dead threads
+        // remove closed connections
         connectionList.removeIf(e -> e.getSocket().isClosed());
-        connectionThreadList.removeIf(t -> !t.isAlive());
     }
 
     public void newRoom(String roomName) {
@@ -157,7 +136,7 @@ public class Server implements Runnable {
         Thread checkConnections = new Thread(() -> {
             try {
                 while (true) {
-                    this.closeUnusedThreads();
+                    this.closeUnusedConnections();
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
@@ -176,8 +155,7 @@ public class Server implements Runnable {
             Connection conn = new Connection(this, clientSocket);
             Thread thread = new Thread(conn, clientSocket.getPort() + "");
 
-            thread.start();
-            connectionThreadList.add(thread);
+            threadPool.submit(thread);
             connectionList.add(conn);
             this.sendMessageToClients("[server]> [" + clientSocket.getPort() + "] joined the server");
         }
